@@ -1,0 +1,85 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+
+
+contract Bank {
+    string TokenName;
+    address Bank;
+    uint funds;
+
+    constructor() {
+        TokenName = "BR";
+        Bank = msg.sender;
+        funds = 0;
+    }
+
+    struct loan{
+        uint Amount;
+        bool isValid;
+    }
+
+    mapping(address => uint) private Credits;
+
+    mapping(address => loan) private  Loandetails;
+
+
+    function _WeitoBR(uint amount) public pure returns(uint){
+        return amount/1000000000000000;
+    }
+
+    function _BRtoWei(uint amount) public pure returns(uint){
+        return amount*1000000000000000;
+    }
+
+    function _mintToken(uint Gwei) public payable {
+        require(msg.value == Gwei);
+        Credits[msg.sender] += _WeitoBR(Gwei);
+        funds += Gwei;
+    }
+
+    function _ViewBalance(address user) public view returns(uint){
+        return Credits[user];
+    }
+    
+    function _ViewLoan(address user) public view returns(uint , bool){
+        require(msg.sender == Bank);
+        return (Loandetails[user].Amount ,Loandetails[user].isValid);
+    }
+
+    function _trasferToken(uint NoofToken , address transferTo) public {
+        require(Credits[msg.sender] >= NoofToken);
+        Credits[transferTo] += NoofToken;
+        Credits[msg.sender] -= NoofToken;
+    }
+
+    function _Loan(uint amount , address user) public {
+        require(msg.sender == Bank);
+        Credits[user] = _WeitoBR(amount);
+        Loandetails[user] = loan(amount,true);
+    }
+
+    function _repayLoan(uint hourss) public {
+        require(Loandetails[msg.sender].isValid == true);
+        uint cost = uint(Loandetails[msg.sender].Amount)*hourss/10 + uint(Loandetails[msg.sender].Amount);
+        require(Credits[msg.sender] >= _WeitoBR(cost));
+        Credits[msg.sender] -= _WeitoBR(cost);
+        delete Loandetails[msg.sender];
+    }
+
+    function viewFunds() public view returns(uint){
+        require(msg.sender == Bank);
+        return funds;
+    }
+
+    function _withDraw(uint Wei) public {
+        require(msg.sender == Bank);
+        payable(Bank).transfer(Wei);
+        funds -= Wei;
+    }
+
+    function _withDrawToken(uint noofToken , address user) public {
+        require(msg.sender == Bank);
+        Credits[user] -= noofToken;
+    }
+}
